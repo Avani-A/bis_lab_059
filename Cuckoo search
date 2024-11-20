@@ -1,0 +1,65 @@
+import numpy as np
+
+# Objective function: Minimize f(x, y) = x^2 + y^2
+def objective_function(position):
+    x, y = position
+    return x**2 + y**2
+
+
+def levy_flight(Lambda=1.5):
+    sigma_u = (np.math.gamma(1 + Lambda) * np.sin(np.pi * Lambda / 2) /
+               (np.math.gamma((1 + Lambda) / 2) * Lambda * 2**((Lambda - 1) / 2)))**(1 / Lambda)
+    sigma_v = 1
+    u = np.random.normal(0, sigma_u)
+    v = np.random.normal(0, sigma_v)
+    step = u / abs(v)**(1 / Lambda)
+    return step
+
+
+NUM_NESTS = 15         # Number of nests (solutions)
+DIMENSIONS = 2         # Problem dimensions
+ITERATIONS = 100       # Number of iterations
+ALPHA = 0.01           # Step size
+PA = 0.25              # Probability of abandoning a nest
+BOUNDS = (-10, 10)     # Bounds for the search space
+
+# nests
+nests = np.random.uniform(BOUNDS[0], BOUNDS[1], (NUM_NESTS, DIMENSIONS))
+best_nest = nests[np.argmin([objective_function(nest) for nest in nests])]
+
+
+def cuckoo_search():
+    global best_nest
+    for iteration in range(ITERATIONS):
+        new_nests = nests.copy()
+        
+        #  new solutions
+        for i in range(NUM_NESTS):
+            step = levy_flight()
+            new_nests[i] = nests[i] + ALPHA * step * np.random.uniform(-1, 1, DIMENSIONS)
+            new_nests[i] = np.clip(new_nests[i], BOUNDS[0], BOUNDS[1])
+        
+        # new solutions,update nests
+        for i in range(NUM_NESTS):
+            if objective_function(new_nests[i]) < objective_function(nests[i]):
+                nests[i] = new_nests[i]
+        
+   
+        for i in range(NUM_NESTS):
+            if np.random.rand() < PA:
+                nests[i] = np.random.uniform(BOUNDS[0], BOUNDS[1], DIMENSIONS)
+       
+        current_best_nest = nests[np.argmin([objective_function(nest) for nest in nests])]
+        if objective_function(current_best_nest) < objective_function(best_nest):
+            best_nest = current_best_nest
+        
+       
+        print(f"Iteration {iteration + 1}: Best Score = {objective_function(best_nest)}")
+
+ 
+    print("\nFinal Best Solution:")
+    print(f"Position: {best_nest}, Score: {objective_function(best_nest)}")
+
+# Run the Cuckoo Search
+if __name__ == "__main__":
+    cuckoo_search()
